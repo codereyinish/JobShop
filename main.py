@@ -14,7 +14,6 @@ in a job, and employers can post available positions through the agency or
 authorized agents.
 
 
-
 WHY I CHOSE THIS COMPANY:
 I chose to create a data management system for an informal employment agency
 that connects immigrant workers seeking minimum-wage cash jobs with local
@@ -74,6 +73,7 @@ from datetime import datetime
 total_workers_registered = 0      # Count of workers registered today
 total_companies_registered = 0
 total_jobs_posted = 0
+
 
 
 # =============================================================================
@@ -141,6 +141,41 @@ def validate_positive_number(prompt, min_value, max_value):
 
 
 
+def validate_date(prompt):
+    """
+    Validates date input in MM/DD/YYYY format
+    Ensures the date is today or in the future
+    : param prompt: Message to display to the user
+    return: A valid date string in MM/DD/YYYY format
+    """
+
+    while True:
+        date_str = input(prompt).strip()
+
+        #Check if empty
+        if not date_str:
+            print("❌ Error: Date cannot be empty.\n")
+            continue
+
+        try:
+            #Try to parse the date
+            date_obj = datetime.strptime(date_str, "%m/%d/%Y") #Parse string to time
+
+            #Check if date is not in  the past
+            today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            if date_obj < today:
+                print("X Error: Date cannot be in the past. \n")
+                continue
+            return date_str
+
+        except ValueError:
+            print("❌ Error: Invalid date format. Please use MM/DD/YYYY (e.g., 12/25/2024). \n")
+
+
+
+
+
+
 
 
 
@@ -158,7 +193,7 @@ def register_worker():
     #Get worker name with validation(not empty)
     while True:
         worker_name = input("Enter worker name: ").strip()
-        if worker_name and len(worker_name) >= 2:
+        if worker_name and len(worker_name) > 2:
             break
         print("❌ Error: Name must be at least 2 characters. \n")
 
@@ -247,6 +282,20 @@ def register_company():
             break
         print("❌ Error: Business type must be valid one.\n")
 
+    #Get Company Address
+    while True:
+        company_address = input("Enter the address of the company. \n").strip()
+        if not  company_address or  len(company_address)<5:
+            print("❌ Address too short.\n")
+            continue
+
+        if not company_address[0].isdigit():
+            print("❌ Address should start with a street number.\n")
+            continue
+
+
+
+
     #Get phone number with validation
     company_phone = validate_phone_number()
 
@@ -257,18 +306,19 @@ def register_company():
     print("-"*70)
     print(f"Company Name: {company_name} ")
     print(f"Company Type: {business_type}")
+    print(f"Company Address: {company_address}")
     print(f"Company Phone: {company_phone}")
     print("-"*70)
 
     #Write company to the file
-    write_company_to_file(company_name, business_type, company_phone)
+    write_company_to_file(company_name, business_type, company_address, company_phone )
 
     #Increment Counter
     total_companies_registered += 1
 
     print(f"✅ Company registered successfully! (Total Company Registered so far: {total_companies_registered}) \n ")
 
-def write_company_to_file(company_name, company_type, company_phone):
+def write_company_to_file(company_name, company_type,company_address,company_phone):
     """
     Writes company information to the companies.txt file.
     Appends data with timestamp for record-keeping.
@@ -286,7 +336,115 @@ def write_company_to_file(company_name, company_type, company_phone):
         file.write(f"Registration Time: {timestamp} \n")
         file.write(f"Company Name: {company_name}\n")
         file.write(f"Company Type: {company_type}\n")
-        file.write(f"Company_Phone:{company_phone} \n ")
+        file.write(f"Company Address:{company_address} \n ")
+        file.write(f"Company Phone:{company_phone} \n ")
         file.write("=" * 70)
 
 
+def post_job():
+    """
+      Posts a new job opportunity in the system.
+      Collects job details with validation and saves to file.
+      Increments the global jobs counter.
+    """
+    global total_jobs_posted
+
+    print(f"\n { '-'*70}")
+    print("JOB POSTING")
+
+    #Get job details with validation
+
+    # Get company name (who is posting the job)
+    while True:
+        company_name = input("Enter company name posting this job: ").strip()
+        if company_name and len(company_name) >2:
+            break
+        print("❌Error: Company name must be at least 2 characters \n ")
+
+
+    # Get job position/title
+    while True:
+        job_position = input(f"\nEnter job position (e.g., dishwasher, cashier, cleaner): ").strip()
+        if job_position and len(job_position) > 3:
+            break
+        print("❌ Error: Job position must be at least 2 characters.\n")
+
+    # Get required skills(soft and hard)
+    while True:
+        required_skills = input(
+            "\nEnter skills required for this position (e.g., must know dishwashing, food prep experience): ").strip()
+        if required_skills and len(required_skills) >2:
+            break
+        print("❌ Error: Required skills must be valid one.\n")
+
+    # Get to be offered hourly pay rate with validation
+    pay_rate = validate_positive_number(  # Helper function
+        "\nEnter hourly pay rate($10 - $50): ",
+        10.0,
+        50.0
+    )
+
+    # Get hours offered with validation
+    hours_offered_per_week = int(validate_positive_number(
+        "\nEnter hours offered per week(1-12): ",
+        1,
+        80 ))
+
+
+    total_pay_per_week = hours_offered_per_week* pay_rate
+
+
+
+    # Get start_date with validation
+    start_date = validate_date("\nEnter start date (MM/DD/YYYY): ")
+
+
+    # Display summary for confirmation
+
+    print(f"\n {'-'*70}")
+    print("JOB POSTING SUMMARY")
+    print(f"\n {'-' * 70}")
+    print(f"Company: {company_name}")
+    print(f"Position: {job_position}")
+    print(f"Required Skills: {required_skills}")
+    print(f"Pay Rate: {pay_rate}")
+    print(f"Hours Offered/Week: {hours_offered_per_week}")
+    print(f"Total Pay per week: ${total_pay_per_week}")
+    print(f"Start Date: {start_date}")
+    print(f"\n {'-' * 70}")
+
+    #Write to the file
+    write_job_to_file(company_name, job_position, required_skills, pay_rate, hours_offered_per_week,
+                      total_pay_per_week, start_date)
+
+    #Increment the counter
+    total_jobs_posted += 1
+
+    print(f"✅ Job posted successfully! (Total jobs posted so far: {total_jobs_posted})\n")
+
+
+def write_job_to_file(company_name, job_position, required_skills, pay_rate, hours_offered_per_week,
+                      total_pay_per_week, start_date):
+    """
+    Writes job posting information to the jobs.txt file.
+    Appends data with timestamp for record-keeping.
+    """
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    with open("job_post.txt", "a") as file:
+        file.write(f"\n{'-'*70}\n")
+        file.write(f"Posted Timestamp: {timestamp}")
+        file.write(f"Company: {company_name}")
+        file.write(f"Job Position: {job_position}")
+        file.write(f"Pay_Rate: {pay_rate}")
+        file.write(f"Hours Offered Per Week: {hours_offered_per_week}")
+        file.write(f"Total Pay per Week: {total_pay_per_week}")
+        file.write(f"Start_date: {start_date}")
+        file.write(f"\n{'-' * 70}\n")
+
+
+
+post_job()
+# =============================================================================
+# MAIN MENU (for testing)
+# =============================================================================
