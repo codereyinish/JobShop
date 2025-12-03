@@ -1,0 +1,22 @@
+
+======================================================================
+Registration Time: 2025-12-03 17:52:45 
+Company Name: mr patel
+Company Type: retail
+Company Address:74 roosevelt 
+ Company Phone:1234554321 
+ ======================================================================
+======================================================================
+Registration Time: 2025-12-03 17:53:12 
+Company Name: mr kiwi
+Company Type: retail
+Company Address:875 fulton 
+ Company Phone:1234554321 
+ ======================================================================
+======================================================================
+Registration Time: 2025-12-03 17:53:37 
+Company Name: mr lime
+Company Type: retail
+Company Address:34 hudson 
+ Company Phone:1234554321 
+ ======================================================================
