@@ -48,78 +48,137 @@ traditionally relies on word-of-mouth and informal record-keeping.
 FUTURE VISION:
 While this version stores data in text files, the validation logic and modular
 structure are designed to transition smoothly into a web application using
-FastAPI and PostgreSQL. The current Python validation (Layer 1) will remain
-identical, with database constraints (Layer 2) added as a safety net for data
-integrity - demonstrating the "defense-in-depth" validation strategy used in
-production systems.
+FastAPI and PostgreSQL.
 
 ================================================================================
 Author: Manish Bista
 Course: COM-250-B01
 Date: Fall 2025
+Professor : Mr. Taghi Ozbeki
 ================================================================================
 """
 
 
 
 # =============================================================================
-# IMPORTS
+# SECTION1:  IMPORTS
 # =============================================================================
 from datetime import datetime
 
-# =============================================================================
-# GLOBAL VARIABLES
-# =============================================================================
-total_workers_registered = 0   # Count of workers registered today
-total_companies_registered = 0
-total_jobs_posted = 0
-total_membership_fee = 0
 
-#=============================================================================
-# STARTUP FUNCTION
+
+
+# =============================================================================
+# SECTION2 :  GLOBAL VARIABLES
+# =============================================================================
+total_workers_registered = 0   #Total number of workers registered in the LocalWork agency
+total_companies_registered = 0 #Total number of companies registered in the LocalWork agency
+total_jobs_posted = 0           #Total number of jobs posted in the LocalWork agency
+total_membership_fee = 0        #Total number of revenue collected from memberships in the LocalWork agency
+
+
+
+
+
+# =============================================================================
+# SECTION 3: DATA PERSISTENCE FUNCTIONS
+# =============================================================================
+
 def load_previous_totals():
     """
-    Loads cumulative totals from the previous report.txt file at startup.
-    Reads the last saved values from the file(we are not using database till now) to continue tracking across sessions.
+        Loads cumulative totals from report.txt at program startup.
 
-    :return: None (updates global variables directly)
+        This function reads the previous session's data from the report file
+        and restores the global variables, allowing the program to maintain
+        state across multiple sessions without using a database.
+
+        :return: None (updates global variables directly
     """
     global total_workers_registered, total_companies_registered, total_jobs_posted, total_membership_fee
-
     try:
         with open("report.txt" , 'r') as file:
+            # Read file line by line and extract data
             for line in file:
-                line = line.strip() #read line by line
+                line = line.strip()
 
+                #Extract Worker Count
                 if "Total number of Workers Registered: " in line:
                     total_workers_registered = int(line.split(':')[1].strip())
 
+                # Extract Company Count
                 elif "Total number of Companies Registered: " in line:
                     total_companies_registered = int(line.split(':')[1].strip())
 
+                # Extract Jobs Count
                 elif "Total number of Jobs posted: " in line:
                     total_jobs_posted = int(line.split(':')[1].strip())
 
+                # Extract total revenue
                 elif "Total Revenue Collected so far :" in line:
                     total_membership_fee = float(line.split('$')[1].strip())
 
         print(f"\nPrevious data loaded from report\n")
 
     except FileNotFoundError:
+        # First time running - no previous data exists
         print("\nNo previous report found. Starting fresh.\n")
-    except:
+
+    except Exception:
         print("\nError loading report. Starting from 0.\n")
 
 
+def generate_cumulative_report():
+    """
+        Generates and saves the daily earnings report.
 
-        #Extract total_workers_registered
+        This function is called when the program exits to save all
+        cumulative totals to report.txt for the next session. This lets us to maintain inter session state in absence
+        of database
+        """
+
+    print(".........GENERATED COMPANY'S  CUMULATIVE REPORT...........")
+    write_report_to_file()
 
 
 
-#=============================================================================
+def write_report_to_file():
+    """
+       Writes cumulative report to report.txt (overwrites existing file).
+
+       Generates a summary report containing total workers, companies, jobs,
+       and revenue collected. Report reflects cumulative data across all
+       program sessions since files persist between runs.
+    """
+
+    with open("report.txt" ,'w') as file:
+        # Write header
+        file.write(f"\n {'='*70}")
+        file.write(f"           LOCALWORK CONNECT - DAILY REPORT\n")
+        file.write(f"{'=' * 70}\n")
+
+        #Write timestamp
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        file.write(f"Report Generated : {timestamp} \n")
+        file.write(f"{'=' * 70}\n")
+
+        # Write activity Summary
+        file.write(f"DAILY ACTIVITY SUMMARY\n")
+        file.write(f"{'-' * 70}\n")
+        file.write(f"Total number of Workers Registered: {total_workers_registered} \n")
+        file.write(f"Total number of Companies Registered: {total_companies_registered} \n")
+        file.write(f"Total number of Jobs posted: {total_jobs_posted} \n\n")
+
+        # Write revenue breakdown
+        file.write(f"REVENUE BREAKDOWN \n")
+        file.write(f"{'=' * 70}\n")
+        file.write(f"Total numbers of paid workers:{total_membership_fee/100}\n")
+        file.write(f"Total Revenue Collected so far : ${total_membership_fee:.2f}\n\n")
+
+
+
 
 # =============================================================================
-# VALIDATION FUNCTIONS
+# SECTION 4 : VALIDATION FUNCTIONS
 # =============================================================================
 
 def validate_phone_number():
@@ -147,8 +206,9 @@ def validate_phone_number():
                 print(f"  Error: Phone number must be exactly 10 digits. You entered {len(phone)} digits.\n")
                 continue
 
-        # If all checks pass, return the valid phone number
+        # All checks passed
         return phone
+
 
 def validate_positive_number(prompt, min_value, max_value):
     """
@@ -178,7 +238,7 @@ def validate_positive_number(prompt, min_value, max_value):
             return value
 
         except ValueError:
-            #if conversion to the float fails
+            #Handle non-numeric input
             print(" Error: Please enter a valid number. \n")
 
 
@@ -217,8 +277,18 @@ def validate_date(prompt):
 
 
 
+# =============================================================================
+# SECTION 5: MAIN TASK FUNCTIONS
+# =============================================================================
+# These functions implement the three core operations of the system:
+# 1. Worker Registration
+# 2. Company Registration
+# 3. Job Posting
 
 
+#=============================================================================
+# REGISTER WORKER FUNCTIONS
+# =============================================================================
 
 
 def register_worker():
@@ -230,67 +300,84 @@ def register_worker():
     global total_workers_registered
     global total_membership_fee
 
+    #Display header
     print("\n" + "="*70)
-    print("WOKRER RESGISTRATION")
+    print("WORKER REGISTRATION")
 
-    #Get worker name with validation(not empty)
+    # Ask how many workers to register
     while True:
-        worker_name = input("Enter worker name: ").strip()
-        if worker_name and len(worker_name) > 2:
-            break
-        print("  Error: Name must be at least 2 characters. \n")
-
-    #Get phone number(using validation function)
-    worker_phone = validate_phone_number()
-
-    #Get hourly wage expectation with valiadation
-    worker_wage = validate_positive_number(         #Helper function
-        "Enter expected hourly wage($10 - $50): ",  #Parameter 1
-        10.0,                                       #Parameter 2
-        50.0                                        #Parameter 3
-    )
-
-    while True:
-        worker_skills = input("Enter worker skills (e.g. cleaning , construction , cashier...").strip()
-        if worker_skills:
-            break
-        print("  Error: Skills cannot be empty . \n")
-
-    #Prompt user for membership fee
-    while True:
-        decision = input("Do you want to may membership fee  now ?.. Enter 'Y' or 'N' : ").strip().upper()
-        if not decision or (decision != 'Y' and decision!= 'N') :
-            print("Enter Correctly")
-            continue
-        if decision == 'Y':
-            total_membership_fee = total_membership_fee+100
-            break
-        else:  # decision == 'N'
-            print("Worker registered without payment. Payment pending.")
-            break
+        try:
+            num_workers = int(input("\nHow many workers do you want to register? (1-10): "))
+            if 1 <= num_workers <= 10:
+                break
+            print(" Error: Please enter a number between 1 and 10.\n")
+        except ValueError:
+            print(" Error: Please enter a valid number.\n")
 
 
+    #Use for loop to register multiple workers
+    for worker_num in range(1, num_workers + 1):
+        print("\n" + "-" * 70)
+        print(f"REGISTERING WORKER {worker_num} OF {num_workers}")
+        print("-" * 70)
 
+        # Get worker name with validation(not empty)
+        while True:
+            worker_name = input("Enter worker name: ").strip()
+            if worker_name and len(worker_name) > 2:
+                break
+            print("  Error: Name must be at least 2 characters. \n")
 
+        # Get phone number(using validation function)
+        worker_phone = validate_phone_number()
 
-    # Display summary for confirmation
-    print("\n" + "-"*70)
-    print("WORKER REGISTRATION SUMMARY")
-    print("-"*70)
-    print(f"Name: {worker_name}")
-    print(f"Phone: {worker_phone}")
-    print(f"Expected wage: ${worker_wage:.2f}/hour")
-    print(f"Skills: {worker_skills}")
-    print(f"Membership fee: {'Paid' if decision == 'Y' else 'Unpaid'}")
-    print("-"*70)
+        # Get hourly wage expectation with valiadation
+        worker_wage = validate_positive_number(
+        "Enter expected hourly wage($10 - $50): ",
+        10.0,
+        50.0
+            )
 
-    #write to the file
-    write_worker_to_file(worker_name, worker_phone, worker_wage, worker_skills)
+        # Get worker skills
+        while True:
+            worker_skills = input("Enter worker skills (e.g. cleaning , construction , cashier...").strip()
+            if worker_skills:
+                break
+            print("  Error: Skills cannot be empty . \n")
 
-    #Increment counter
-    total_workers_registered += 1
+        # Prompt user for membership fee payment
+        while True:
+            decision = input("Do you want to may membership fee  now ?.. Enter 'Y' or 'N' : ").strip().upper()
+            # Validate Y or N input
+            if not decision or (decision != 'Y' and decision != 'N'):
+                print("Enter Correctly")
+                continue
+            if decision == 'Y':
+                total_membership_fee = total_membership_fee + 100
+                break
+            else:  # decision == 'N'
+                print("Worker registered without payment. Payment pending.")
+                break
 
-    print(f"Worker registered successfully! Total workers so far: {total_workers_registered}\n")
+        # Display summary for confirmation
+        print("\n" + "-" * 70)
+        print("WORKER REGISTRATION SUMMARY")
+        print("-" * 70)
+        print(f"Name: {worker_name}")
+        print(f"Phone: {worker_phone}")
+        print(f"Expected wage: ${worker_wage:.2f}/hour")
+        print(f"Skills: {worker_skills}")
+        print(f"Membership fee: {'Paid' if decision == 'Y' else 'Unpaid'}")
+        print("-" * 70)
+
+        # Write to the file
+        write_worker_to_file(worker_name, worker_phone, worker_wage, worker_skills)
+
+        # Increment counter
+        total_workers_registered += 1
+
+        # Success Message
+        print(f"Worker registered successfully! Total workers so far: {total_workers_registered}\n")
 
 
 
@@ -315,6 +402,9 @@ def write_worker_to_file(name, phone , wage, skills):
 
 
 
+#=============================================================================
+# REGISTER COMPANY FUNCTIONS
+# =============================================================================
 
 
 def register_company():
@@ -325,6 +415,8 @@ def register_company():
     """
 
     global total_companies_registered
+
+    #Display header
     print("\n" + "'-''*70")
     print("Company Registration")
     print("-"*70)
@@ -336,19 +428,20 @@ def register_company():
             break
         print("  Error:Company Name must be at least 2 characters. \n")
 
-    # Get Business Type with validation
+    # Get business type with validation
     while True:
         business_type = input("Enter business type (e.g., restaurant, retail, construction, cleaning): ").strip()
         if business_type and len(business_type)>2:
             break
         print("  Error: Business type must be valid one.\n")
 
-    #Get Company Address
+    #Get company Address
     while True:
         company_address = input("Enter the address of the company:  \n").strip()
         if not  company_address or  len(company_address)<5:
             print("  Address too short.\n")
             continue
+
 
         if not company_address[0].isdigit():
             print("  Address should start with a street number.\n")
@@ -404,6 +497,11 @@ def write_company_to_file(company_name, company_type,company_address,company_pho
         file.write("=" * 70)
 
 
+#=============================================================================
+# JOB POSTING FUNCTIONS
+# =============================================================================
+
+
 def post_job():
     """
       Posts a new job opportunity in the system.
@@ -412,10 +510,9 @@ def post_job():
     """
     global total_jobs_posted
 
+    #display header
     print(f"\n { '-'*70}")
     print("JOB POSTING")
-
-    #Get job details with validation
 
     # Get company name (who is posting the job)
     while True:
@@ -424,7 +521,6 @@ def post_job():
             break
         print(" Error: Company name must be at least 2 characters \n ")
 
-
     # Get job position/title
     while True:
         job_position = input(f"\nEnter job position (e.g., dishwasher, cashier, cleaner): ").strip()
@@ -432,7 +528,7 @@ def post_job():
             break
         print("  Error: Job position must be at least 2 characters.\n")
 
-    # Get required skills(soft and hard)
+    # Get required skills
     while True:
         required_skills = input(
             "\nEnter skills required for this position (e.g., must know dishwashing, food prep experience): ").strip()
@@ -447,13 +543,13 @@ def post_job():
         50.0
     )
 
-    # Get hours offered with validation
+    # Get hours offered per week with validation
     hours_offered_per_week = int(validate_positive_number(
         "\nEnter hours offered per week(1-80): ",
         1,
         80 ))
 
-
+    # Calculate total weekly pay
     total_pay_per_week = hours_offered_per_week* pay_rate
 
 
@@ -463,7 +559,6 @@ def post_job():
 
 
     # Display summary for confirmation
-
     print(f"\n {'-'*70}")
     print("JOB POSTING SUMMARY")
     print(f"\n {'-' * 70}")
@@ -506,74 +601,51 @@ def write_job_to_file(company_name, job_position, required_skills, pay_rate, hou
         file.write(f"\n{'-' * 70}\n")
 
 
-def generate_daily_earnings_report():
-    """
-     Generates comprehensive daily earnings report at :59
-    """
-
-    print("###########generated daily report########### ")
-
-    #timestamp
-    #report is generated automatically at a given time, no options
-    #display with cat
-
-    write_report_to_file()
-
-
-def write_report_to_file():
-    """
-    Writes cumulative report to report.txt (overwrites existing file).
-
-    Generates a summary report containing total workers, companies, jobs,
-    and revenue collected. Report reflects cumulative data across all
-    program sessions since files persist between runs.
-    """
-
-    with open("report.txt" ,'w') as file:
-        file.write(f"\n {'='*70}")
-        file.write(f"           LOCALWORK CONNECT - DAILY REPORT\n")
-        file.write(f"{'=' * 70}\n")
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        file.write(f"Report Generated : {timestamp} \n")
-        file.write(f"{'=' * 70}\n")
-
-        # Activity Summary
-        file.write(f"DAILY ACTIVITY SUMMARY\n")
-        file.write(f"{'-' * 70}\n")
-        file.write(f"Total number of Workers Registered: {total_workers_registered} \n")
-        file.write(f"Total number of Companies Registered: {total_companies_registered} \n")
-        file.write(f"Total number of Jobs posted: {total_jobs_posted} \n\n")
-
-        #Revenue Breakdown
-        file.write(f"REVENUE BREAKDOWN \n")
-        file.write(f"{'=' * 70}\n")
-        file.write(f"Total numbers of paid workers:{total_membership_fee/100}\n")
-        file.write(f"Total Revenue Collected so far : ${total_membership_fee:.2f}\n\n")
-
-
-
-def read_file_content(FileChoice:str):
-    FileChoice = FileChoice.strip() + ".txt"
-    print(FileChoice)
-    if (FileChoice!= "companies.txt" and FileChoice!= "job_post.txt" and FileChoice!= "report.txt" and
-            FileChoice!="workers.txt"):
-        print("Sorry!, Such file doesnt exist.")
-        return
-
-    with open(FileChoice, 'r') as file:
-        file_content = file.read()
-        print(file_content)
-
 
 
 # =============================================================================
-# MAIN MENU (for testing)
+# SECTION 6: FILE VIEWING FUNCTION (INCLUDES FOR LOOP - REQUIREMENT!)
+# =============================================================================
+
+def read_file_content(FileChoice:str):
+    Filename = FileChoice.strip() + ".txt"
+
+    #Check if file is valid
+    if (Filename!= "companies.txt" and Filename!= "job_post.txt" and Filename!= "report.txt" and
+            Filename!="workers.txt"):
+        print("Sorry!, Such file doesnt exist.")
+        return
+
+    # Try to read and display file
+    try:
+        with open(Filename, 'r') as file:
+            file_content = file.read()
+
+            # Display file content
+            print("\n" + "=" * 70)
+            print(f"CONTENTS OF {Filename.upper()}")
+            print(file_content)
+            print("=" * 70)
+            print(file_content)
+            print("=" * 70 + "\n")
+
+
+    except FileNotFoundError:
+        print(f"\nError: {Filename} not found. The file may be empty or hasn't been created yet.\n")
+    except Exception as e:
+        print(f"\n Error reading file: {e}\n")
+
+
+# =============================================================================
+# SECTION 7: MENU DISPLAY FUNCTION
 # =============================================================================
 
 def display_menu():
     """
-     Display the main menu for the LocalWork Connect system
+    Displays the main menu for the LocalWork Connect system.
+    Shows all available options to the user in a formatted menu.
     """
+
     print("\n" + "="*70)
     print("LOCALWORK CONNECT - COMMUNITY EMPLOYMENT AGENCY")
     print("="*70)
@@ -589,17 +661,22 @@ def display_menu():
 
 
 
-
-
-
-
+# =============================================================================
+# SECTION 8: MAIN PROGRAM LOOP
+# =============================================================================
 
 def main():
     """
-    Main Program loop
+    Main program loop - orchestrates the entire application.
+
+    Uses a WHILE LOOP to continuously display menu and process user choices
+    until the user decides to exit. Handles KeyboardInterrupt for graceful
+    shutdown and ensures data is saved before program termination.
+
     """
 
-    load_previous_totals() #load the global variable from the reports.txt file
+    # Load previous session data from report.txt file
+    load_previous_totals()
     try:
         while True:
             display_menu()
@@ -617,7 +694,8 @@ def main():
                 read_file_content(FileChoice)
 
             elif choice == "E":
-                generate_daily_earnings_report()
+                # Exit program - save data first
+                generate_cumulative_report()
                 print(f"\n {'=' * 70}")
                 print("DAILY SUMMARY")
                 print("=" * 70)
@@ -629,7 +707,9 @@ def main():
                 print("Thank you for using LocalWork Connect!")
                 print("=" * 70 + "\n")
                 break
+
             else:
+                #Invalid Choice
                 print(" Invalid Choice. Please enter from among these options:")
                 print("RW. Register Worker")
                 print("RC. Register Company")
@@ -642,12 +722,20 @@ def main():
         print(" PROGRAM INTERRUPTED")
         print("=" * 70)
         print("Saving data before exit...")
-        generate_daily_earnings_report()
+        generate_cumulative_report()
         print("Data saved successfully!")
         print("=" * 70 + "\n")
 
 
-#Run the program
+
+
+
+# =============================================================================
+# SECTION 9: PROGRAM ENTRY POINT
+# =============================================================================
+
+
+#run the program
 if __name__ == "__main__":
     main()
 
