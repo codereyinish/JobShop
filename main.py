@@ -55,6 +55,7 @@ Author: Manish Bista
 Course: COM-250-B01
 Date: Fall 2025
 Professor : Mr. Taghi Ozbeki
+#   Project Repository: https://github.com/codereyinish/JobShop
 ================================================================================
 """
 
